@@ -43,7 +43,16 @@ class MyBot {
       
       if (!turnContext.responded && results.status === DialogTurnStatus.empty) {
 
+          var user = turnContext.activity.from.name;
+          await turnContext.sendActivity('Hi '+ user + '! Welcome to the Rich Cards Bot!');
           
+          if(turnContext.activity.text === "!config"){
+          
+          const promptOptions = {
+              prompt: 'Please select a configuration Option:',
+              reprompt: 'That was not a valid choice, please select a card or number from 1 to 8.',
+              choices: this.getChoices()
+          };
 
           // Prompt the user with the configured PromptOptions.
           await dc.prompt('cardPrompt', promptOptions);
@@ -69,7 +78,43 @@ class MyBot {
           await this.conversationState.saveChanges(turnContext);
     }
 
+  getChoices() {
+    const cardOptions = [
+        {
+            value: 'Login to Github',
+            synonyms: ['1', 'login', 'github']
+        },
+        {
+            value: 'Add Repositories',
+            synonyms: ['2', 'add repo', 'add']
+        }
+    ];
 
+    return cardOptions;
+}
+
+async sendCardResponse(turnContext, dialogTurnResult) {
+  switch (dialogTurnResult.result.value) {
+      case 'Login to Github':
+          await turnContext.sendActivity({ attachments: [this.createSignInCard()] });
+          break;
+      case 'All Cards':
+          await turnContext.sendActivities([
+              { attachments: [this.createSignInCard()] }
+          ]);
+          break;
+      default:
+          await turnContext.sendActivity('An invalid selection was parsed. No corresponding Rich Cards were found.');
+  }
+}
+
+createSignInCard() {
+  return CardFactory.signinCard(
+      'Github Authentication',
+      'https://github.com/login/oauth/authorize?scope=user:email&client_id=18a9a9ccd8ba489c54af',
+      'Sign in'
+  );
+}
 
 }
 
