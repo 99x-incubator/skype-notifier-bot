@@ -67,3 +67,31 @@ server.post('/api/messages', (req, res) => {
     });
 });
 
+
+server.get('/callback', function (req, res) {
+
+    var query = req.getQuery();
+    var code = query.split('=');
+
+
+    var post_data = {
+        'client_id': '18a9a9ccd8ba489c54af',
+        'client_secret': 'ef9804f236f7a7667a2cdfc34aa99103d63529bd',
+        'code' : code[1],
+        'accept' : 'json'
+    };
+
+    const options = {
+        url: "https://github.com/login/oauth/access_token",
+        form: post_data
+    }
+
+    request.post(options, function(err,httpResponse,body){
+
+        console.log(body.access_token);
+
+    });
+
+   // console.log(code[1]);
+
+});
