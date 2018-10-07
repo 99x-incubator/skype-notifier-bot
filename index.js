@@ -11,6 +11,7 @@ const env = require('dotenv').config({path: ENV_FILE});
 var express = require('express');
 var querystring = require('querystring');
 var request = require('request');
+var session = require('express-session');
 
 // bot endpoint name as defined in .bot file
 // See https://aka.ms/about-bot-file to learn more about .bot file its use and bot configuration .
@@ -29,6 +30,9 @@ server.listen(process.env.port || process.env.PORT || 3978, function () {
     console.log(`\nTo talk to your bot, open myChatBot.bot file in the Emulator`);
 });
 
+server.use(session({secret: process.env.SESSION_SECRET}));
+
+var session;
 // .bot file path
 const BOT_FILE = path.join(__dirname, (process.env.botFilePath || ''));
 
@@ -61,6 +65,8 @@ adapter.onTurnError = async (context, error) => {
     await conversationState.saveChanges(context);
 };
 
+
+
 server.post('/api/messages', (req, res) => {
     adapter.processActivity(req, res, async (context) => {
         await myBot.onTurn(context);
@@ -72,11 +78,12 @@ server.get('/callback', function (req, res) {
 
     var query = req.getQuery();
     var code = query.split('=');
+    session = req.session;
 
 
     var post_data = {
-        'client_id': '18a9a9ccd8ba489c54af',
-        'client_secret': 'ef9804f236f7a7667a2cdfc34aa99103d63529bd',
+        'client_id': process.env.GITHUB_CLIENT_ID,
+        'client_secret': process.env.GITHUB_CLIENT_SECRET,
         'code' : code[1],
         'accept' : 'json'
     };
@@ -88,10 +95,38 @@ server.get('/callback', function (req, res) {
 
     request.post(options, function(err,httpResponse,body){
 
-        console.log(body.access_token);
+        
+        var string = querystring.parse(body);
+        var accessToken = string.access_token;
+        session.access_token = accessToken;
 
+        getGithubUser();
     });
 
+    function getGithubUser(){
+
+        const options = {
+            url: "https://api.github.com/user",
+            headers: {
+                'Authorization': 'Bearer '+ session.access_token,
+                'User-Agent': 'Skype Notification Bot'
+              }
+        }
+        
+
+        request.get(options, function(err,httpResponse,body){
+
+            var obj = JSON.parse(body);
+            session.name = obj.name;
+            res.send(session.name);
+
+            adapter.processActivity(req, res, async (context) => {
+                await myBot.sendUserCard(context);
+            });
+        });
+
+
+    }
    // console.log(code[1]);
 
 });
