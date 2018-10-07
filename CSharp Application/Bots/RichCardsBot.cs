@@ -191,7 +191,7 @@ namespace CICD_SkypeBot
         {
             return new SigninCard()
             {
-                Text = "BotFramework Sign-in Card",
+                Text = "Please sign in with this bot to access your account information",
                 Buttons = new List<CardAction>()
                 {
                     new CardAction()
