@@ -1,0 +1,10 @@
+class firebaseDB{
+    
+    constructor(){
+       
+    }
+
+    initDB(){
+
+    }
+}
