@@ -15,5 +15,8 @@ class firebaseDB{
           databaseURL: "https://skype-notifier-bot.firebaseio.com"
         });
         var db = admin.database();
+        var ref = db.ref("projects");
+        var usersRef = ref.child("dID");
     }
 }
+module.exports = AngularDB;
