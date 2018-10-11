@@ -1,4 +1,5 @@
 ﻿# Welcome to SkypeBotForCICD!
+![Face](icon.png?raw=true "Face")
 ## What is a bot?
 A bot is an app that users interact with in a conversational way using text, graphics (cards), or speech. It may be a simple question and answer dialog,
 or a sophisticated bot that allows people to interact with services in an intelligent manner using pattern matching,
@@ -13,7 +14,7 @@ git clone https://github.com/99xt-incubator/skype-notifier-bot
 ```
 - [Optional] Update the `appsettings.json` file under with your botFileSecret.  For Azure Bot Service bots, you can find the botFileSecret under application settings.
 ## Visual Studio
-- Navigate to the root folder and open SkypeBot.sln in Visual Studio 
+- Navigate to the `skype-notifier-bot/CSharp Application/` folder and open SkypeBot.sln in Visual Studio 
 - Hit F5
 ## Visual Studio Code
 - Open `skype-notifier-bot/CSharp Application/` folder
