@@ -1,6 +1,11 @@
-# Skype ChatBot for GitHub
+# Welcome to SkypeBotForCICD!
+## What is a bot?
+A bot is an app that users interact with in a conversational way using text, graphics (cards), or speech. It may be a simple question and answer dialog, or a sophisticated bot that allows people to interact with services in an intelligent manner using pattern matching, state tracking and artificial intelligence techniques well-integrated with existing business services.
+## This application
+This application uses bot authentication capabilities in Azure Bot Service, providing features to make it easier to develop a bot that authenticates users to GitHub and provide frequent updates about PR and other CI/CD pipeline related updates.
 
-# To run the bot
+### [This guide is about Nodejs application. Please go [here](https://github.com/99xt-incubator/skype-notifier-bot/tree/master/CSharp%20Application) to see C# application guide.]
+## To run the Nodejs bot 
 - Install modules and start the bot
     ```bash
     npm i & npm start
@@ -58,4 +63,3 @@ npm i -g msbot chatdown ludown qnamaker luis-apis botdispatch luisgen
 [7]: https://docs.microsoft.com/en-us/azure/bot-service/bot-builder-storage-concept?view=azure-bot-service-4.0
 [8]: https://docs.microsoft.com/en-us/azure/bot-service/bot-builder-howto-v4-storage?view=azure-bot-service-4.0&tabs=jsechoproperty%2Ccsetagoverwrite%2Ccsetag
 [9]: https://docs.microsoft.com/en-us/azure/bot-service/bot-builder-howto-v4-state?view=azure-bot-service-4.0&tabs=js
-[10] https://dev.botframework.com
