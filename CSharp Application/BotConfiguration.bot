@@ -1,0 +1,33 @@
+{
+    "name": "bot-authentication",
+    "description": "",
+    "services": [
+        {
+            "type": "endpoint",
+            "appId": "72cadc14-c4df-450f-a090-eb305a66300a",
+            "appPassword": "zyoDADI42!actmXJG573+$)",
+            "endpoint": "https://99x-skype-notifier.azurewebsites.net/api/messages",
+            "id": "1",
+            "name": "development"
+        },
+        {
+            "type": "abs",
+            "appId": "72cadc14-c4df-450f-a090-eb305a66300a",
+            "resourceGroup": "Bots",
+            "subscriptionId": "37a98be5-8ccb-4614-b86f-418c00500db0",
+            "id": "72"
+        },
+        {
+            "type": "endpoint",
+            "appId": "72cadc14-c4df-450f-a090-eb305a66300a",
+            "appPassword": "zyoDADI42!actmXJG573+$)",
+            "endpoint": "https://99x-skype-notifier.azurewebsites.net/api/messages",
+            "name": "Skype Notifier",
+            "id": "149"
+        }
+    ],
+    "padlock": "",
+    "version": "2.0",
+    "path": "D:\\18.bot-authentication\\BotConfiguration.bot",
+    "overrides": null
+}

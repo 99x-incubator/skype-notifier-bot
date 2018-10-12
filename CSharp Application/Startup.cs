@@ -1,102 +1,152 @@
-﻿using CICD_SkypeBot;
+﻿using System;
+using System.Linq;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Bot.Builder.BotFramework;
+using Microsoft.Bot.Builder;
+using Microsoft.Bot.Builder.Dialogs;
+using Microsoft.Bot.Builder.Integration;
 using Microsoft.Bot.Builder.Integration.AspNet.Core;
+using Microsoft.Bot.Configuration;
+using Microsoft.Bot.Connector.Authentication;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using Microsoft.Bot.Builder;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication;
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authentication.OAuth;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using Newtonsoft.Json.Linq;
-using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using SkypeBotForCICD;
+using SkypeBotForCICD.Middleware;
 
-public class Startup
+namespace SkypeBotForCICD
 {
-    // Inject the IHostingEnvironment into constructor
-    public Startup(IHostingEnvironment env)
+    public class Startup
     {
-        // Set the root path
-        ContentRootPath = env.ContentRootPath;
-    }
+        private ILoggerFactory _loggerFactory;
+        private bool _isProduction = false;
 
-    // Track the root path so that it can be used to setup the app configuration
-    public string ContentRootPath { get; private set; }
-    public static IConfigurationRoot Configuration { get; set; }
-    public void ConfigureServices(IServiceCollection services)
-    {
-
-        // Set up the service configuration
-        var builder = new ConfigurationBuilder()
-            .SetBasePath(ContentRootPath)
-            .AddJsonFile("appsettings.json")
-            .AddEnvironmentVariables();
-        
-        
-        services.AddAuthentication(options =>
+        public Startup(IHostingEnvironment env)
         {
-            options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-            options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-            options.DefaultChallengeScheme = "GitHub";
-        })
-        .AddCookie()
-        .AddOAuth("GitHub", options =>
+            _isProduction = env.IsProduction();
+
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(env.ContentRootPath)
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
+                .AddEnvironmentVariables();
+
+            Configuration = builder.Build();
+        }
+
+        /// <summary>
+        /// Gets the configuration that represents a set of key/value application configuration properties.
+        /// </summary>
+        /// <value>
+        /// The <see cref="IConfiguration"/> that represents a set of key/value application configuration properties.
+        /// </value>
+        public IConfiguration Configuration { get; }
+
+        /// <summary>
+        /// This method gets called by the runtime. Use this method to add services to the container.
+        /// </summary>
+        /// <param name="services">The <see cref="IServiceCollection"/> specifies the contract for a collection of service descriptors.</param>
+        /// <seealso cref="IStatePropertyAccessor{T}"/>
+        /// <seealso cref="https://docs.microsoft.com/en-us/aspnet/web-api/overview/advanced/dependency-injection"/>
+        /// <seealso cref="https://docs.microsoft.com/en-us/azure/bot-service/bot-service-manage-channels?view=azure-bot-service-4.0"/>
+        public void ConfigureServices(IServiceCollection services)
         {
-            options.ClientId = "f6e86b4db35459285385";//Configuration["GitHub:ClientId"];
-            options.ClientSecret = "e5dd20adad546f991c81efa2a497e31c0879039e";//Configuration["GitHub:ClientSecret"];
-            options.CallbackPath = new PathString("/signin_github");
-
-            options.AuthorizationEndpoint = "https://github.com/login/oauth/authorize";
-            options.TokenEndpoint = "https://github.com/login/oauth/access_token";
-            options.UserInformationEndpoint = "https://api.github.com/user";
-
-            options.ClaimActions.MapJsonKey(ClaimTypes.NameIdentifier, "id");
-            options.ClaimActions.MapJsonKey(ClaimTypes.Name, "name");
-            options.ClaimActions.MapJsonKey("urn:github:login", "login");
-            options.ClaimActions.MapJsonKey("urn:github:url", "html_url");
-            options.ClaimActions.MapJsonKey("urn:github:avatar", "avatar_url");
-
-            options.Events = new OAuthEvents
+            services.AddBot<AuthenticationBot>(options =>
             {
-                OnCreatingTicket = async context =>
+                // options.Middleware.Add(new Middleware1());
+                // options.Middleware.Add(new Middleware2());
+                var secretKey = Configuration.GetSection("botFileSecret")?.Value;
+                var botFilePath = Configuration.GetSection("botFilePath")?.Value;
+
+                // Loads .bot configuration file and adds a singleton that your Bot can access through dependency injection.
+                var botConfig = BotConfiguration.Load(botFilePath ?? @".\BotConfiguration.bot", secretKey);
+                services.AddSingleton(sp => botConfig ?? throw new InvalidOperationException($"The .bot config file could not be loaded. ({botConfig})"));
+
+                // Retrieve current endpoint.
+                var environment = _isProduction ? "production" : "development";
+                var service = botConfig.Services.Where(s => s.Type == "endpoint" && s.Name == environment).FirstOrDefault();
+                if (!(service is EndpointService endpointService))
                 {
-                    var request = new HttpRequestMessage(HttpMethod.Get, context.Options.UserInformationEndpoint);
-                    request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", context.AccessToken);
-
-                    var response = await context.Backchannel.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, context.HttpContext.RequestAborted);
-                    response.EnsureSuccessStatusCode();
-
-                    var user = JObject.Parse(await response.Content.ReadAsStringAsync());
-
-                    context.RunClaimActions(user);
+                    throw new InvalidOperationException($"The .bot file does not contain an endpoint with name '{environment}'.");
                 }
-            };
-        });
 
-        var configuration = builder.Build();
-        services.AddSingleton(configuration);
-        // Add your SimpleBot to your application
-        services.AddBot<RichCardsBot>(options =>
+                options.CredentialProvider = new SimpleCredentialProvider(endpointService.AppId, endpointService.AppPassword);
+
+                // Creates a logger for the application to use.
+                ILogger logger = _loggerFactory.CreateLogger<AuthenticationBot>();
+
+                // Catches any errors that occur during a conversation turn and logs them.
+                options.OnTurnError = async (context, exception) =>
+                {
+                    logger.LogError($"Exception caught : {exception}");
+                    await context.SendActivityAsync("Sorry, it looks like something went wrong.");
+                };
+
+                // The Memory Storage used here is for local bot debugging only. When the bot
+                // is restarted, everything stored in memory will be gone.
+                IStorage dataStore = new MemoryStorage();
+
+                // For production bots use the Azure Blob or
+                // Azure CosmosDB storage providers. For the Azure
+                // based storage providers, add the Microsoft.Bot.Builder.Azure
+                // Nuget package to your solution. That package is found at:
+                // https://www.nuget.org/packages/Microsoft.Bot.Builder.Azure/
+                // Uncomment the following lines to use Azure Blob Storage
+                // //Storage configuration name or ID from the .bot file.
+                // const string StorageConfigurationId = "<STORAGE-NAME-OR-ID-FROM-BOT-FILE>";
+                // var blobConfig = botConfig.FindServiceByNameOrId(StorageConfigurationId);
+                // if (!(blobConfig is BlobStorageService blobStorageConfig))
+                // {
+                //    throw new InvalidOperationException($"The .bot file does not contain an blob storage with name '{StorageConfigurationId}'.");
+                // }
+                // // Default container name.
+                // const string DefaultBotContainer = "<DEFAULT-CONTAINER>";
+                // var storageContainer = string.IsNullOrWhiteSpace(blobStorageConfig.Container) ? DefaultBotContainer : blobStorageConfig.Container;
+                // IStorage dataStore = new Microsoft.Bot.Builder.Azure.AzureBlobStorage(blobStorageConfig.ConnectionString, storageContainer);
+
+                // Create Conversation State object.
+                // The Conversation State object is where we persist anything at the conversation-scope.
+                var conversationState = new ConversationState(dataStore);
+
+                options.State.Add(conversationState);
+            });
+
+            // Create and register state accesssors.
+            // Acessors created here are passed into the IBot-derived class on every turn.
+            services.AddSingleton<AuthenticationBotAccessors>(sp =>
+            {
+                var options = sp.GetRequiredService<IOptions<BotFrameworkOptions>>().Value;
+                if (options == null)
+                {
+                    throw new InvalidOperationException("BotFrameworkOptions must be configured prior to setting up the State Accessors.");
+                }
+
+                var conversationState = options.State.OfType<ConversationState>().FirstOrDefault();
+                if (conversationState == null)
+                {
+                    throw new InvalidOperationException("ConversationState must be defined and added before adding conversation-scoped state accessors.");
+                }
+
+                // Create Custom State Property accessors
+                // State Property Accessors enable components to read and write individual properties, without having to
+                // pass the entire state object.
+                var accessors = new AuthenticationBotAccessors
+                {
+                    ConversationDialogState = conversationState.CreateProperty<DialogState>(AuthenticationBotAccessors.DialogStateName),
+                };
+
+                return accessors;
+            });
+        }
+
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
         {
-            options.CredentialProvider = new ConfigurationCredentialProvider(configuration);
-        });
+            _loggerFactory = loggerFactory;
 
-
-    }
-
-    public void Configure(IApplicationBuilder app, IHostingEnvironment env)
-    {
-        app.UseStaticFiles();
-        app.UseAuthentication();
-
-        // Tell your application to use Bot Framework
-        app.UseBotFramework();
+            app.UseDefaultFiles()
+                .UseStaticFiles()
+                .UseBotFramework();
+        }
     }
 }

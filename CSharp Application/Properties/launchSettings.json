@@ -2,29 +2,26 @@
   "iisSettings": {
     "windowsAuthentication": false,
     "anonymousAuthentication": true,
-    "iis": {
-      "applicationUrl": "http://localhost/demo6cards",
-      "sslPort": 0
-    },
     "iisExpress": {
-      "applicationUrl": "http://localhost:54269/",
-      "sslPort": 44345
+      "applicationUrl": "http://localhost:3978/",
+      "sslPort": 44349
     }
   },
   "profiles": {
     "IIS Express": {
       "commandName": "IISExpress",
+      "launchBrowser": true,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
-    "demo6cards": {
+    "Using_Cards": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
-      "applicationUrl": "http://localhost:54272/"
+      "applicationUrl": "http://localhost:1205/"
     }
   }
 }

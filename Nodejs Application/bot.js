@@ -87,6 +87,10 @@ class MyBot {
         {
             value: 'Add Repositories',
             synonyms: ['2', 'add repo', 'add']
+        },
+        {
+            value: 'Show User Card',
+            synonyms: ['user']
         }
     ];
 
@@ -95,27 +99,94 @@ class MyBot {
 
 async sendCardResponse(turnContext, dialogTurnResult) {
   switch (dialogTurnResult.result.value) {
-      case 'Login to Github':
+    case 'Login to Github':
           await turnContext.sendActivity({ attachments: [this.createSignInCard()] });
-          break;
-      case 'All Cards':
+        break;
+    case 'All Cards':
           await turnContext.sendActivities([
               { attachments: [this.createSignInCard()] }
           ]);
-          break;
+        break;
+    case 'Show User Card':
+        await turnContext.sendActivities([
+            { attachments: [this.createUserCard()] }
+        ]);
+        break;       
       default:
           await turnContext.sendActivity('An invalid selection was parsed. No corresponding Rich Cards were found.');
   }
 }
 
+async sendCardResponseOutside(turnContext, message) {
+    switch (message) {
+      case 'Show User Card':
+          await turnContext.sendActivities([
+              { attachments: [this.createUserCard()] }
+          ]);
+          break;       
+        default:
+            await turnContext.sendActivity('An invalid selection was parsed. No corresponding Rich Cards were found.');
+    }
+  }
+
+createUserCard(){
+
+    return CardFactory.receiptCard({
+        title: 'John Doe',
+        facts: [
+            {
+                key: 'Order Number',
+                value: '1234'
+            },
+            {
+                key: 'Payment Method',
+                value: 'VISA 5555-****'
+            }
+        ],
+        items: [
+            {
+                title: 'Data Transfer',
+                price: '$38.45',
+                quantity: 368,
+                image: { url: 'https://github.com/amido/azure-vector-icons/raw/master/renders/traffic-manager.png' }
+            },
+            {
+                title: 'App Service',
+                price: '$45.00',
+                quantity: 720,
+                image: { url: 'https://github.com/amido/azure-vector-icons/raw/master/renders/cloud-service.png' }
+            }
+        ],
+        tax: '$7.50',
+        total: '$90.95',
+        buttons: CardFactory.actions([
+            {
+                type: 'openUrl',
+                title: 'More information',
+                value: 'https://azure.microsoft.com/en-us/pricing/details/bot-service/'
+            }
+        ])
+    });
+}
+
 createSignInCard() {
   return CardFactory.signinCard(
       'Github Authentication',
-      'https://github.com/login/oauth/authorize?scope=user:email&client_id=18a9a9ccd8ba489c54af',
+      'https://github.com/login/oauth/authorize?scope=user:email&client_id=148eba2abec50398b195',
       'Sign in'
   );
 }
 
+async sendUserCard(context) {
+    var msg=[];
+    msg.result.value = "Show User Card";
+
+    await sendCardResponse(context, "Show User Card");
 }
+
+
+}
+
+
 
 module.exports.MyBot = MyBot;
