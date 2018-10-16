@@ -17,6 +17,18 @@ class firebaseDB{
         var db = admin.database();
         var ref = db.ref("projects");
         var usersRef = ref.child("dID");
+        usersRef.set({
+            
+            person: {
+                date_of_birth: "March 23, 1995",
+                full_name: "Malith Wijeseakra"
+            },
+              gracehop: {
+                date_of_birth: "December 9, 1906",
+                full_name: "Grace Hopper"
+              }
+            });
+            
     }
 }
 module.exports = AngularDB;
