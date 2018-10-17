@@ -26,6 +26,14 @@ class firebaseDB{
               gracehop: {
                 date_of_birth: "December 9, 1906",
                 full_name: "Grace Hopper"
+              },
+              Sinamaris: {
+                date_of_birth: "February, 1999",
+                full_name: "Sinamaris"
+              },
+              Jamis: {
+                date_of_birth: "February, 1999",
+                full_name: "Jamis bond"
               }
             });
             
